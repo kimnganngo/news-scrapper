@@ -1,0 +1,27 @@
+name: harvest-news-daily
+
+on:
+  schedule:
+    # 06:05 Asia/Bangkok (UTC+7) = 23:05 UTC hôm trước
+    - cron: '5 23 * * *'
+  workflow_dispatch: {}   # Cho phép bấm chạy tay
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # để commit file data/ về repo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python harvest.py
+      - name: Commit dataset
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/
+          git commit -m "chore: harvest dataset" || echo "No changes"
+          git push
