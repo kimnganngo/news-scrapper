@@ -2,26 +2,39 @@ name: harvest-news-daily
 
 on:
   schedule:
-    # 06:05 Asia/Bangkok (UTC+7) = 23:05 UTC hôm trước
-    - cron: '5 23 * * *'
-  workflow_dispatch: {}   # Cho phép bấm chạy tay
+    # 08:00 ICT = 01:00 UTC
+    - cron: '0 1 * * *'
+    # 12:00 ICT = 05:00 UTC
+    - cron: '0 5 * * *'
+    # 15:00 ICT = 08:00 UTC
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Số ngày gần đây để lấy (mặc định 30)'
+        required: false
+        default: '30'
+      max_pages:
+        description: 'Số trang/listsite mỗi nguồn (mặc định 8)'
+        required: false
+        default: '8'
 
 jobs:
   run:
     runs-on: ubuntu-latest
     permissions:
       contents: write   # để commit file data/ về repo
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - run: python harvest.py
-      - name: Commit dataset
+      - name: Run harvester
+        env:
+          DAYS: ${{ github.event.inputs.days }}
+          MAX_PAGES: ${{ github.event.inputs.max_pages }}
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@users.noreply.github.com"
-          git add data/
-          git commit -m "chore: harvest dataset" || echo "No changes"
-          git push
+          # đặt giá trị mặc định khi run theo schedule
+          DAYS="${DAYS:-30}"
+          MAX_PAGES="${MAX_PAGES:-8}"
+          python harvest.py --days "$DAYS" --max-pages "$MAX_PAGES"
+
